@@ -1,0 +1,66 @@
+version: '3.8'
+
+volumes:
+  mongo_vol:
+  post_vol:
+
+networks:
+  sextnet:
+    driver: bridge
+
+services:
+  mongodb:
+    image: mongo:4.4.3
+    networks:
+      - sextnet
+    volumes:
+      - mongo_vol:/base/db
+    environment:
+      MONGODB_HOST: mongodb
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopwd
+
+  postdb:
+    image: postgres:latest
+    networks:
+       - sextnet
+    volumes:
+      - post_vol:/vol/postgresql/data
+    environment:
+      POSTGRES_DB: pgDB
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgsenha
+
+  api:
+    image: zul9an9/rotten-potatoes-ms:v1
+    ports:
+      - 8080:8080
+    networks:
+      - sextnet
+    depends_on:
+      - movis
+      - review
+    environment:
+      MONGODB_HOST: mongodb
+      MONGODB_USERNAME: mongouser
+      MONGODB_PASSWORD: mongopwd
+      MOVIE_SERVICE_URI: http://movies:8181/
+      REVIEW_SERVICE_URI: http://review:80/
+
+  movis:
+    image: zul9an9/movie:v1
+    networks:
+      - sextnet
+    depends_on:
+      - mongodb
+    environment:
+      MONGODB_URI: mongodb://mongouser:mongopwd@mongodb:27017/admin
+
+  review:
+    image: zul9an9/review:v1
+    networks:
+      - sextnet
+    depends_on:
+      - postdb
+    environment:
+      ConnectionStrings__MyConnection: Host=postdb;Database=pgDB;Username=pguser;Password=pgsenha;

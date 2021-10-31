@@ -1,0 +1,79 @@
+version: "3.8"
+
+networks:
+  rotten_net:
+    driver: bridge
+
+volumes:
+  mongo_vol:
+  post_vol:
+
+services:
+  mongo:
+    image: mongo:4.4.7
+    networks:
+      - rotten_net
+    volumes:
+      - mongo_vol:/base/db
+    environment:
+      MONGODB_HOST: mongodb
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopwd
+
+  postdb:
+    image: postgres:latest
+    networks:
+       - rotten_net
+    volumes:
+      - post_vol:/vol/postgresql/data
+    environment:
+      POSTGRES_DB: pgDB
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgsenha
+
+  api:
+    image: zul9an9/rotten-potatoes-ms:v1
+    depends_on: 
+      - review
+      - movie
+    networks:
+      - rotten_net
+    environment:
+      REVIEW_SERVICE_URI: http://review:80
+      MOVIE_SERVICE_URI: http://movie:8181
+    #  MONGODB_DB: admin
+    #  MONGODB_HOST: mongo
+    #  MONGODB_PORT: 27017      
+    #  MONGODB_USERNAME: mongouser
+    #  MONGODB_PASSWORD: mongopwd
+    ports:
+      - "8080:5000"
+
+  review:
+    image: zul9an9/review:v1
+    depends_on: 
+      - postdb
+    networks:
+      - rotten_net
+    environment:
+      ConnectionStrings__MyConnection: Host=postdb;Database=pgDB;Username=pguser;Password=pgsenha;
+    ports:
+      - "80:80"
+
+  movie:
+    image: zul9an9/movie:v1
+    depends_on: 
+      - mongo
+    networks:
+      - rotten_net
+    environment:
+      MONGODB_URI: mongodb://mongouser:mongopwd@mongodb:27017/admin
+    ports:
+      - "8181:8181"
+    #  MONGODB_DB: admin
+    #  MONGODB_HOST: mongo
+    #  MONGODB_PORT: 27017      
+    #  MONGODB_USERNAME: mongouser
+    #  MONGODB_PASSWORD: mongopwd
+
+

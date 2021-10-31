@@ -1,0 +1,70 @@
+version: '3.8'
+#Volumes fixos
+volumes:
+  mongo_vol:
+  post_vol:
+#rede cominicação
+networks:
+  rotten_net:
+    driver: bridge
+
+#Services de banco mongo e postgre
+services:
+  mongodb:
+    image: mongo:4.4.3
+    networks:
+      - rotten_net
+    volumes:
+      - mongo_vol:/base/db
+    environment:
+      MONGODB_HOST: mongodb
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopwd
+
+  post_db:
+    image: postgres:latest
+    networks:
+       - rotten_net
+    volumes:
+      - post_vol:/vol/postgresql/data
+    environment:
+      POSTGRES_DB: pgDB
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgsenha
+
+#Aplicações rotten | movies | review
+  api:
+    image: zul9an9/rotten-potatoes-ms:v1
+    ports:
+      - 8080:8080
+    networks:
+      - rotten_net
+    depends_on:
+      - movies
+      - review
+    environment:
+      MONGODB_HOST: mongodb
+      MONGODB_USERNAME: mongouser
+      MONGODB_PASSWORD: mongopwd
+      MOVIE_SERVICE_URI: http://movies:8181
+      REVIEW_SERVICE_URI: http://review:80
+
+  movies:
+    image: zul9an9/movie:v1
+    networks:
+      - rotten_net
+    depends_on:
+      - mongodb
+    environment:
+      MONGODB_URI: mongodb://mongouser:mongopwd@mongodb:27017/admin
+
+  review:
+    image: zul9an9/review:v1
+    ports:
+    - 8282:80
+    networks:
+      - rotten_net
+    depends_on:
+      - post_db
+    environment:
+      ConnectionStrings__MyConnection: Host=post_db;Database=pgDB;Username=pguser;Password=pgsenha;
