@@ -2,8 +2,9 @@ version: '3.8'
 #Volumes fixos
 volumes:
   mongo_vol:
+#     name: mongo_vol
   post_vol:
-#rede cominicação
+#     name: post_vol
 networks:
   rotten_net:
     driver: bridge
@@ -12,10 +13,12 @@ networks:
 services:
   mongodb:
     image: mongo:4.4.3
+    ports:
+    - 27017:27017
     networks:
-      - rotten_net
+     - rotten_net
     volumes:
-      - mongo_vol:/base/db
+     - mongo_vol:/data/db
     environment:
       MONGODB_HOST: mongodb
       MONGO_INITDB_ROOT_USERNAME: mongouser
@@ -24,9 +27,9 @@ services:
   post_db:
     image: postgres:latest
     networks:
-       - rotten_net
+     - rotten_net
     volumes:
-      - post_vol:/vol/postgresql/data
+     - post_vol:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: pgDB
       POSTGRES_USER: pguser
@@ -36,12 +39,12 @@ services:
   api:
     image: zul9an9/rotten-potatoes-ms:v1
     ports:
-      - 8080:8080
+     - 8080:8080
     networks:
-      - rotten_net
+     - rotten_net
     depends_on:
-      - movies
-      - review
+     - movies
+     - review
     environment:
       MONGODB_HOST: mongodb
       MONGODB_USERNAME: mongouser
@@ -54,12 +57,12 @@ services:
     networks:
       - rotten_net
     depends_on:
-      - mongodb
+     - mongodb
     environment:
       MONGODB_URI: mongodb://mongouser:mongopwd@mongodb:27017/admin
 
   review:
-    image: zul9an9/review:v1
+    image: zul9an9/reviews:v1
     ports:
     - 8282:80
     networks:
